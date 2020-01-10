@@ -119,6 +119,7 @@ function telegram_info() {
      UTS_VERSION=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep UTS_VERSION | cut -d '"' -f2)
      BUILD_USER=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep LINUX_COMPILE_BY | cut -d '"' -f2)
      BUILD_HOST=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep LINUX_COMPILE_HOST | cut -d '"' -f2)
+     TOOLCHAIN_VER=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep LINUX_COMPILER | cut -d '"' -f2)
 }
 
 function finerr_privv() {
@@ -168,12 +169,12 @@ export KBUILD_COMPILER_STRING="$(${KERNEL_COMP}/clang/bin/clang --version | GREE
 export LD_LIBRARY_PATH="${KERNEL_COMP}/nusantara/bin/../lib:$PATH"
 make -s -C "${KERNEL_DIR}" -j$(nproc) O=out ${CONFIG}
 PATH="${KERNEL_COMP}/nusantara/bin:${PATH}" \
-make -C "${KERNEL_DIR}" -j$(nproc) O=out \
+make -C "${KERNEL_DIR}" -j$(nproc) -> ${TEMP}/build.log O=out \
                   ARCH=arm64 \
                   CC=clang \
                   CLANG_TRIPLE=aarch64-linux-gnu- \
                   CROSS_COMPILE=aarch64-linux-gnu- \
-                  CROSS_COMPILE_ARM32=arm-linux-gnueabi- 2>&1| tee build.log
+                  CROSS_COMPILE_ARM32=arm-linux-gnueabi-
                   telegram_info
 
 if [[ ! -f "${KERNEL_IMG}" ]]; then
@@ -183,7 +184,7 @@ if [[ ! -f "${KERNEL_IMG}" ]]; then
 	exit 1;
 fi
 cp ${KERNEL_IMG} ${ZIP_DIR}/zImage
-cp ${KERNEL_LOG} ${TEMP}/log.log
+cp ${KERNEL_LOG} ${TEMP}
 log_compile
 cd ${ZIP_DIR}
 zip -r9q GREENFORCE-${KERNEL_TYPE}-${CODENAME}-${TANGGAL}.zip * -x .git README.md
@@ -191,6 +192,6 @@ BUILD_END=$(date +"%s")
 DIFF=$((${BUILD_END} - ${BUILD_START}))
 testprivv
 push
-tg_sendtc "$(echo "COMPILE WITH ${KBUILD_COMPILER_STRING}")"
+tg_sendtc "$(echo "COMPILE WITH ${TOOLCHAIN_VER}")"
 cd ${KERNEL_DIR}
 clean
