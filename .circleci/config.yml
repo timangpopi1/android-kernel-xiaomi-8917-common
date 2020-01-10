@@ -4,19 +4,18 @@ jobs:
     docker:
       - image: fadlyas/kernel_dockerfile:latest
     steps:
-      - run: git clone --quiet -j32 https://github.com/fadlyas07/android-kernel-xiaomi-8917-common -b rebase --depth=1 .
-      - run: git clone --quiet -j32 https://github.com/fadlyas07/build-scripts --depth=1
-      - run: bash build-scripts/pure-caf/kernel_rolex.sh
-  compiletoo:
-    docker:
-      - image: fadlyas/kernel_dockerfile:latest
-    steps:
-      - run: git clone --quiet -j32 https://github.com/fadlyas07/android-kernel-xiaomi-8917-common -b rebase --depth=1 .
-      - run: git clone --quiet -j32 https://github.com/fadlyas07/build-scripts --depth=1
-      - run: bash build-scripts/pure-caf/kernel_riva.sh
+      - run: git clone --quiet -j32 https://github.com/fadlyas07/android-kernel-xiaomi-8917-common -b scripts --depth=1 .
+      - run: bash ./build.sh
+#  compiletoo:
+#    docker:
+#      - image: fadlyas/kernel_dockerfile:latest
+#    steps:
+#      - run: git clone --quiet -j32 https://github.com/fadlyas07/android-kernel-xiaomi-8917-common -b rebase --depth=1 .
+#      - run: git clone --quiet -j32 https://github.com/fadlyas07/build-scripts --depth=1
+#      - run: bash build-scripts/pure-caf/kernel_riva.sh
 workflows:
   version: 2.1
   cooking:
     jobs:
       - compile
-      - compiletoo
+#      - compiletoo
