@@ -169,7 +169,7 @@ export LD_LIBRARY_PATH="${KERNEL_COMP}/nusantara/bin/../lib:$PATH"
 make -s -C "${KERNEL_DIR}" -j$(nproc) O=out ${CONFIG}
 PATH="${KERNEL_COMP}/nusantara/bin:${PATH}" \
 make -C "${KERNEL_DIR}" -j$(nproc) O=out \
-                  ARCH=${ARM} \
+                  ARCH=arm64 \
                   CC=clang \
                   CLANG_TRIPLE=aarch64-linux-gnu- \
                   CROSS_COMPILE=aarch64-linux-gnu- \
@@ -177,7 +177,7 @@ make -C "${KERNEL_DIR}" -j$(nproc) O=out \
                   telegram_info
 
 if [[ ! -f "${KERNEL_IMG}" ]]; then
-	tg_sendinfo "$(echo "Build throw an error(s) took $((${DIFF} / 60)) minute(s) and $((${DIFF} % 60)) seconds.")"
+	tg_sendinfo "$(echo "Build took $((${DIFF} / 60)) minute(s) and $((${DIFF} % 60)) seconds.")"
 	finerr_privv
 	logerr
 	exit 1;
