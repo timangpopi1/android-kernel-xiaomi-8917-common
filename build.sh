@@ -6,7 +6,6 @@
 
 # Main environtment
 KERNEL_DIR="$(pwd)"
-KERNEL_TYPE="HMP"
 KERNEL_COMP="/root/toolchain"
 TEMP="$KERNEL_DIR/TEMP"
 KERNEL_LOG="$KERNEL_DIR/out/arch/arm64/boot/build.log"
@@ -45,19 +44,6 @@ TELEGRAM=telegram/telegram
 
 export TELEGRAM_TOKEN
 
-function make_clang() {
-# export KBUILD_COMPILER_STRING="$(${KERNEL_COMP}/nusantara/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g')"
-export LD_LIBRARY_PATH="${KERNEL_COMP}/nusantara/bin/../lib:$PATH"
-make -s -C "${KERNEL_DIR}" ${THREAD} O=out ${CONFIG}
-PATH="${KERNEL_COMP}/nusantara/bin:${PATH}" \
-make -C "${KERNEL_DIR}" -j$(nproc) O=out \
-                  ARCH=arm64 \
-                  CC=clang \
-                  CLANG_TRIPLE=aarch64-linux-gnu- \
-                  CROSS_COMPILE=aarch64-linux-gnu- \
-                  CROSS_COMPILE_ARM32=arm-linux-gnueabi- 2>&1| tee build.log
-}
-
 function push() {
     PATH="${KERNEL_COMP}/nusantara/bin:${PATH}"
     ZIP=$(echo *.zip)
@@ -66,13 +52,6 @@ function push() {
 			-F "disable_web_page_preview=true" \
 			-F "parse_mode=html" \
 			-F caption="Build took $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) second(s). <b>For ${DEVICE}</b> [ <code>$UTS_VERSION</code> ]"
-}
-
-function log_compile() {
-    cd ${TEMP}
-    TXT=$(echo *.txt)
-	curl -F document=@$TXT  "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument" \
-			-F chat_id="${TELEGRAM_ID}"
 }
 
 function testprivv() {
@@ -120,6 +99,22 @@ function tg_sendinfo() {
 		-d "disable_web_page_preview=true"
 }
 
+function tg_sendtc() {
+	curl -s "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+		-d "parse_mode=markdown" \
+		-d text="${1}" \
+		-d chat_id="${TELEGRAM_ID}" \
+		-d "disable_web_page_preview=true"
+}
+
+function log_compile() {
+    cd ${TEMP}
+    FILE=$(echo *.log)
+	curl -F document=@$FILE  "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument" \
+			-F chat_id="${TELEGRAM_ID}"
+			cd ${KERNEL_DIR}
+}
+
 function telegram_info() {
      UTS_VERSION=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep UTS_VERSION | cut -d '"' -f2)
      BUILD_USER=$(cat ${KERNEL_DIR}/out/include/generated/compile.h | grep LINUX_COMPILE_BY | cut -d '"' -f2)
@@ -137,14 +132,9 @@ function finerr_privv() {
 	exit 1
 }
 
-function make_zip() {
-    cd ${ZIP_DIR}
-    zip -r9q GREENFORCE-${KERNEL_TYPE}-${CODENAME}-${TANGGAL}.zip * -x .git README.md
-}
-
 function clean() {
-    rm -rf ${TELEGRAM}
-    rm -rf ${ZIP_DIR}
+    rm -rf te*
+    rm -rf an*
     rm -rf ${KERNEL_IMG}
     rm -rg ${KERNEL_COMP}
 }
@@ -153,28 +143,10 @@ function clean() {
 # Telegram FUNCTION end
 #
 
+# Build start
 TANGGAL=$(TZ=Asia/Jakarta date +'%H%M-%d%m%y')
 DATE=`date`
 BUILD_START=$(date +"%s")
-
-make_clang
-telegram_info
-                              
-if [[ ! -f "${KERNEL_IMG}" ]]; then
-	tg_sendinfo "$(echo "Build throw an error(s) took $((${DIFF} / 60)) minute(s) and $((${DIFF} % 60)) seconds.")"
-	finerr_privv
-	logerr
-	exit 1;
-fi
-cp ${KERNEL_LOG} ${TEMP}/build.txt
-cp ${KERNEL_IMG} ${ZIP_DIR}/zImage
-make_zip
-testprivv
-push
-cd $KERNEL_DIR
-BUILD_END=$(date +"%s")
-DIFF=$((${BUILD_END} - ${BUILD_START}))
-log_compile
 
 tg_sendstick
 
@@ -182,11 +154,43 @@ tg_channelcast "<b>GREENFORCE ${KERNEL_TYPE} new build is up</b>!!" \
                              "<b>Device :</b><code> ${DEVICE_SUPPORT} </code>" \
                              "<b>Branch :</b><code> ${BRANCH} </code>" \
                              "<b>Latest commit :</b><code> ${POINT} </code>" \
-                             "<b>Toolchain :</b><code> ${KBUILD_COMPILER_STRING} </code>"
+                             "<b>Toolchain :</b><code> NusantaraDevs clang version 10.0.0 (https://github.com/llvm/llvm-project) </code>" \
+                             "<b>Started At :</b><code> $(TZ=Asia/Jakarta date) </code>"
                              
 tg_channelprivv "GREENFORCE new build for ${CODENAME}" \
                               "📱: <code>${DEVICE}</code>" \
                               "⏰: <code>$(TZ=Asia/Jakarta date)</code>" \
                               "📑: <code>${POINT}</code>" \
                               "🖇️: <a href='${CIRCLE_BUILD_URL}'>here</a> | #${CIRCLE_BUILD_NUM}."
+
+# export KBUILD_COMPILER_STRING="$(${KERNEL_COMP}/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g')"
+export KBUILD_COMPILER_STRING="$(${KERNEL_COMP}/clang/bin/clang --version | GREENFORCE-CLANG (BASED ON LLVM 10.0))"
+export LD_LIBRARY_PATH="${KERNEL_COMP}/nusantara/bin/../lib:$PATH"
+make -s -C "${KERNEL_DIR}" -j$(nproc) O=out ${CONFIG}
+PATH="${KERNEL_COMP}/nusantara/bin:${PATH}" \
+make -C "${KERNEL_DIR}" -j$(nproc) O=out \
+                  ARCH=${ARM} \
+                  CC=clang \
+                  CLANG_TRIPLE=aarch64-linux-gnu- \
+                  CROSS_COMPILE=aarch64-linux-gnu- \
+                  CROSS_COMPILE_ARM32=arm-linux-gnueabi- 2>&1| tee build.log
+                  telegram_info
+
+if [[ ! -f "${KERNEL_IMG}" ]]; then
+	tg_sendinfo "$(echo "Build throw an error(s) took $((${DIFF} / 60)) minute(s) and $((${DIFF} % 60)) seconds.")"
+	finerr_privv
+	logerr
+	exit 1;
+fi
+cp ${KERNEL_IMG} ${ZIP_DIR}/zImage
+cp ${KERNEL_LOG} ${TEMP}/log.log
+log_compile
+cd ${ZIP_DIR}
+zip -r9q GREENFORCE-${KERNEL_TYPE}-${CODENAME}-${TANGGAL}.zip * -x .git README.md
+BUILD_END=$(date +"%s")
+DIFF=$((${BUILD_END} - ${BUILD_START}))
+testprivv
+push
+tg_sendtc "$(echo "COMPILE WITH ${KBUILD_COMPILER_STRING}")"
+cd ${KERNEL_DIR}
 clean
